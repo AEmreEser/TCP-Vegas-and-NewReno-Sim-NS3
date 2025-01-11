@@ -48,7 +48,7 @@ void RunSimulation(double load) {
 
     // Create point-to-point links
     PointToPointHelper p2p;
-    p2p.SetDeviceAttribute("DataRate", StringValue("200Mbps")); // Set high enough to handle 100 Mbps load
+    p2p.SetDeviceAttribute("DataRate", StringValue("5Mbps")); // Set high enough to handle 10 Mbps load
     p2p.SetChannelAttribute("Delay", StringValue("2ms"));
 
     // Install devices
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
     cmd.Parse(argc, argv);
 
     std::cout << "Running Part A simulations..." << std::endl;
-    for (double load = 1.0; load <= 10.0; load += 1.0) { // Adjusted to simulate up to 100 Mbps
+    for (double load = 1.0; load <= 10.0; load += 1.0) { // Adjusted to simulate up to 10 Mbps
         std::cout << "\nLoad: " << load << " Mbps" << std::endl;
         RunSimulation(load);
     }
