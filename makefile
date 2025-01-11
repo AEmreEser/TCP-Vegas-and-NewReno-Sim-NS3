@@ -22,15 +22,16 @@ partB: $(RESULTS_DIR)
 	mv *.pcap $(RESULTS_DIR)
 
 # Analysis: Generate graphs
-analysis: $(RESULTS_DIR)/results_a.txt $(RESULTS_DIR)/results_b.txt $(GRAPHS_DIR)
-	python3 $(ANALYSIS_SCRIPT) $(PARTA_RES) $(PARTB_RES) $(RESULTS_DIR)
-	mv $(RESULTS_DIR)/*.png $(GRAPHS_DIR)
+analysis: results_a.txt results_b.txt $(GRAPHS_DIR)
+	python3 $(ANALYSIS_SCRIPT) $(PARTA_RES) $(PARTB_RES) $(GRAPHS_DIR)
+	# mv $(RESULTS_DIR)/*.png $(GRAPHS_DIR)
 
 # Clean generated files
 clean:
+	@- rm *.pcap
 	@- rm -f $(PARTA_BIN) $(PARTB_BIN)
 	@- rm -rf $(RESULTS_DIR)
-	@- rm *.pcap
+	@- rm -rf $(GRAPHS_DIR)
 
 $(RESULTS_DIR):
 	mkdir -p $(RESULTS_DIR)
