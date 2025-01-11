@@ -10,7 +10,7 @@
 using namespace ns3;
 
 #ifndef SIM_END
-#define SIM_END 5.0
+#define SIM_END 10.0
 #endif
 
 NS_LOG_COMPONENT_DEFINE("PartA");
@@ -108,7 +108,6 @@ void RunSimulation(int load, std::ofstream & outFile) {
     Simulator::Stop(Seconds(SIM_END));
     Simulator::Run();
 
-
     flowmon->CheckForLostPackets();
     Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmonitor.GetClassifier());
     FlowMonitor::FlowStatsContainer stats = flowmon->GetFlowStats();
@@ -119,7 +118,7 @@ void RunSimulation(int load, std::ofstream & outFile) {
 
         double simulationTime = (iter->second.timeLastRxPacket.GetSeconds() - iter->second.timeFirstTxPacket.GetSeconds());
         // double load = ((iter->second.txBytes * 8.0) / simulationTime) / 0.000001; // Load in Mbps
-        double throughput = ((iter->second.rxBytes * 8.0) / simulationTime) / 0.000001; // Throughput in Mbps
+        double throughput = ((iter->second.rxBytes * 8.0) / simulationTime) * 0.000001f; // Throughput in Mbps
         double delay = (iter->second.delaySum.GetSeconds() / iter->second.rxPackets); // Average delay in seconds
 
         std::cout << "Flow " << iter->first << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
@@ -140,7 +139,7 @@ int main(int argc, char *argv[]) {
     CommandLine cmd;
     cmd.Parse(argc, argv);
 
-    std::ofstream outFile("flow_metrics.csv");
+    std::ofstream outFile("a_metrics.csv");
     outFile << "Flow,Load (Mbps),Throughput (Mbps),Delay (s)\n";
 
     std::cout << "Running Part A simulations..." << std::endl;

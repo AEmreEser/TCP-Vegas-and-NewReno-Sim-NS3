@@ -13,7 +13,7 @@
 using namespace ns3;
 
 #ifndef SIM_END
-#define SIM_END 5.0 // make sure this is long enough for the system to stabilize
+#define SIM_END 10.0 
 #endif
 
 NS_LOG_COMPONENT_DEFINE("PartB");
@@ -51,7 +51,7 @@ void RunSimulation(double load, std::string tcpVariant, std::ofstream & outFile)
     PointToPointHelper p2p;
     p2p.SetDeviceAttribute("DataRate", StringValue("100Mbps")); // router & dest conn. rate: 100Mbps
     p2p.SetChannelAttribute("Delay", StringValue("1ms"));
-    // p2p.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue("1p")); // fifo queue in every connection
+    p2p.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue("1p")); // fifo queue in every connection
 
     // A3 - Router Connection
     NetDeviceContainer routerDevices = p2p.Install(lanNodes.Get(2), routerNode.Get(0));
@@ -126,8 +126,7 @@ void RunSimulation(double load, std::string tcpVariant, std::ofstream & outFile)
         Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow(iter->first);
 
         double simulationTime = (iter->second.timeLastRxPacket.GetSeconds() - iter->second.timeFirstTxPacket.GetSeconds());
-        // double load = ((iter->second.txBytes * 8.0) / simulationTime) / 0.000001; // Load in Mbps
-        double throughput = ((iter->second.rxBytes * 8.0) / simulationTime) / 0.000001; // Throughput in Mbps
+        double throughput = ((iter->second.rxBytes * 8.0) / simulationTime) * 0.000001f; // Throughput in Mbps
         double delay = (iter->second.delaySum.GetSeconds() / iter->second.rxPackets); // Average delay in seconds
         double packetLoss = ((double)(iter->second.txPackets - iter->second.rxPackets) / iter->second.txPackets) * 100.0f; // Packet loss in Mbps
 
@@ -154,7 +153,7 @@ int main(int argc, char *argv[]) {
 
     for (const auto& variant : tcpVariants) {
         std::cout << "\nTCP Variant: " << variant << std::endl;
-        for (double load = 10.0; load <= 110.0; load += 10.0) {
+        for (double load = 10.0; load <= 105.0; load += 10.0) {
             std::cout << "\nLoad: " << load << " Mbps" << std::endl;
             RunSimulation(load, variant, outFile);
         }
