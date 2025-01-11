@@ -8,7 +8,13 @@
 #include "ns3/csma-module.h"
 #include "ns3/flow-monitor-module.h"
 
+#include <iomanip>
+
 using namespace ns3;
+
+#ifndef SIM_END
+#define SIM_END 5.0 // make sure this is long enough for the system to stabilize
+#endif
 
 NS_LOG_COMPONENT_DEFINE("PartB");
 
@@ -24,24 +30,8 @@ void RxTrace(Ptr<const Packet> packet, const Address& address) {
     g_delays.push_back(Simulator::Now().GetMilliSeconds());
 }
 
-void CalculateStats() {
-    double throughput = (g_totalBytesReceived * 8.0) / (g_lastRxTime.GetSeconds() * 1000000.0);
-    double avgDelay = 0;
-    if (!g_delays.empty()) {
-        avgDelay = std::accumulate(g_delays.begin(), g_delays.end(), 0.0) / g_delays.size();
-    }
 
-    std::cout << "Results:" << std::endl;
-    std::cout << "Throughput: " << throughput << " Mbps" << std::endl;
-    std::cout << "Average Delay: " << avgDelay << " ms" << std::endl;
-    std::cout << "Total Bytes Received: " << g_totalBytesReceived << std::endl;
-
-    // Reset for next run
-    g_totalBytesReceived = 0;
-    g_delays.clear();
-}
-
-void RunSimulation(double load, std::string tcpVariant) {
+void RunSimulation(double load, std::string tcpVariant, std::ofstream & outFile) {
     // Create nodes
     NodeContainer lanNodes;
     lanNodes.Create(3);  // A1, A2, A3
@@ -52,17 +42,20 @@ void RunSimulation(double load, std::string tcpVariant) {
 
     // Create LAN
     CsmaHelper csma;
-    csma.SetChannelAttribute("DataRate", StringValue("100Mbps"));
+    csma.SetChannelAttribute("DataRate", StringValue("100Mbps")); // lan rate 100Mbps
     csma.SetChannelAttribute("Delay", StringValue("1ms"));
 
     NetDeviceContainer lanDevices = csma.Install(lanNodes);
 
     // Create point-to-point links
     PointToPointHelper p2p;
-    p2p.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
-    p2p.SetChannelAttribute("Delay", StringValue("2ms"));
+    p2p.SetDeviceAttribute("DataRate", StringValue("100Mbps")); // router & dest conn. rate: 100Mbps
+    p2p.SetChannelAttribute("Delay", StringValue("1ms"));
+    // p2p.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue("1p")); // fifo queue in every connection
 
+    // A3 - Router Connection
     NetDeviceContainer routerDevices = p2p.Install(lanNodes.Get(2), routerNode.Get(0));
+    // Router - Node C connection
     NetDeviceContainer destDevices = p2p.Install(routerNode.Get(0), destNode.Get(0));
 
     // Install Internet stack with TCP variant
@@ -77,30 +70,34 @@ void RunSimulation(double load, std::string tcpVariant) {
     // Assign IP addresses
     Ipv4AddressHelper ipv4;
     ipv4.SetBase("10.0.1.0", "255.255.255.0");
+    // addresses 10.0.1.1 to .3 assigned to A{1..3} nodes
     Ipv4InterfaceContainer lanInterfaces = ipv4.Assign(lanDevices);
 
-    ipv4.SetBase("192.168.3.0", "255.255.255.0");
+    ipv4.SetBase("10.0.1.252", "255.255.255.252"); // A1 - Router gets ip 10.0.1.253,254
     Ipv4InterfaceContainer routerInterfaces = ipv4.Assign(routerDevices);
-    Ipv4InterfaceContainer destInterfaces = ipv4.Assign(destDevices);
+
+    ipv4.SetBase("192.168.3.0", "255.255.255.0");
+    Ipv4InterfaceContainer destInterfaces = ipv4.Assign(destDevices); // router - C 
 
     // Enable routing
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
+
+
     // Create TCP application
     uint16_t port = 8080;
-    PacketSinkHelper sink("ns3::TcpSocketFactory",
-                         InetSocketAddress(destInterfaces.GetAddress(1), port));
-    ApplicationContainer sinkApp = sink.Install(destNode.Get(0));
+    PacketSinkHelper sink("ns3::TcpSocketFactory", InetSocketAddress(destInterfaces.GetAddress(1), port));
+    ApplicationContainer sinkApp = sink.Install(destNode.Get(0)); // install it on C
     sinkApp.Start(Seconds(0.0));
-    sinkApp.Stop(Seconds(30.0));
+    sinkApp.Stop(Seconds(SIM_END));
 
     // Configure TCP sender
-    BulkSendHelper source("ns3::TcpSocketFactory",
-                         InetSocketAddress(destInterfaces.GetAddress(1), port));
-    source.SetAttribute("MaxBytes", UintegerValue(load * 1000000));
-    ApplicationContainer sourceApp = source.Install(lanNodes.Get(0));  // A1
+    BulkSendHelper source("ns3::TcpSocketFactory", InetSocketAddress(destInterfaces.GetAddress(1), port));
+    source.SetAttribute("MaxBytes", UintegerValue(load * (1000000/8.0f))); // sends a total of <Load> Mbytes
+    source.SetAttribute("SendSize", UintegerValue(512)); // packet size
+    ApplicationContainer sourceApp = source.Install(lanNodes.Get(0));  // installed on A1
     sourceApp.Start(Seconds(0.0));
-    sourceApp.Stop(Seconds(30.0));
+    sourceApp.Stop(Seconds(SIM_END));
 
     // Add tracing
     Config::ConnectWithoutContext(
@@ -112,13 +109,38 @@ void RunSimulation(double load, std::string tcpVariant) {
     csma.EnablePcapAll("part_b_lan");
     p2p.EnablePcapAll("part_b_p2p");
 
+    FlowMonitorHelper flowmonitor;
+    Ptr<FlowMonitor> flowmon = flowmonitor.InstallAll();
+
     // Run simulation
-    Simulator::Stop(Seconds(30.0));
+    Simulator::Stop(Seconds(SIM_END));
     Simulator::Run();
     Simulator::Destroy();
 
-    // Calculate and print statistics
-    CalculateStats();
+    flowmon->CheckForLostPackets();
+    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmonitor.GetClassifier());
+    FlowMonitor::FlowStatsContainer stats = flowmon->GetFlowStats();
+
+    // for (auto iter = stats.begin(); iter != stats.end(); ++iter) {
+    auto iter = stats.begin(); // only pkts from A1 to C
+        Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow(iter->first);
+
+        double simulationTime = (iter->second.timeLastRxPacket.GetSeconds() - iter->second.timeFirstTxPacket.GetSeconds());
+        // double load = ((iter->second.txBytes * 8.0) / simulationTime) / 0.000001; // Load in Mbps
+        double throughput = ((iter->second.rxBytes * 8.0) / simulationTime) / 0.000001; // Throughput in Mbps
+        double delay = (iter->second.delaySum.GetSeconds() / iter->second.rxPackets); // Average delay in seconds
+        double packetLoss = ((double)(iter->second.txPackets - iter->second.rxPackets) / iter->second.txPackets) * 100.0f; // Packet loss in Mbps
+
+
+        std::cout << "Flow " << iter->first << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
+        std::cout << "  Tx Bytes: " << iter->second.txBytes << "\n";
+        std::cout << "  Rx Bytes: " << iter->second.rxBytes << "\n";
+        std::cout << "  Load: " << load << " Mbps\n";
+        std::cout << "  Throughput: " << throughput << " Mbps\n";
+        std::cout << "  Average Delay: " << delay << " s\n";
+        std::cout << "  Packet Loss: " << std::setprecision(9) << packetLoss << "%\n";
+        outFile << iter->first << "," << load << "," << throughput << "," << delay << "," << packetLoss << "\n";
+    // }
 }
 
 int main(int argc, char *argv[]) {
@@ -127,14 +149,18 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Running Part B simulations..." << std::endl;
     std::vector<std::string> tcpVariants = {"TcpNewReno", "TcpVegas"};
+    std::ofstream outFile("b_metrics.csv");
+    outFile << "Flow,Load (Mbps),Throughput (Mbps),Delay (s), Packet Loss (%)\n";
 
     for (const auto& variant : tcpVariants) {
         std::cout << "\nTCP Variant: " << variant << std::endl;
         for (double load = 10.0; load <= 110.0; load += 10.0) {
             std::cout << "\nLoad: " << load << " Mbps" << std::endl;
-            RunSimulation(load, variant);
+            RunSimulation(load, variant, outFile);
         }
     }
+
+    outFile.close();
 
     return 0;
 }
