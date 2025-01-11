@@ -131,5 +131,4 @@ rm *.pcap
 ## Notes
 
 - Modify the `Makefile` as needed to adapt to your directory structure or NS-3 environment.
-- Ensure the NS-3 `waf` script is configured and that you are running the commands in the root directory of your NS-3 installation.
 
