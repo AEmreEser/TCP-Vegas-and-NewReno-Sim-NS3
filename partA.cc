@@ -1,4 +1,3 @@
-
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
@@ -9,6 +8,10 @@
 #include "ns3/flow-monitor-module.h"
 
 using namespace ns3;
+
+#ifndef SIM_END
+#define SIM_END 5.0
+#endif
 
 NS_LOG_COMPONENT_DEFINE("PartA");
 
@@ -41,7 +44,7 @@ void CalculateStats() {
     g_delays.clear();
 }
 
-void RunSimulation(double load) {
+void RunSimulation(int load, std::ofstream & outFile) {
     // Create nodes
     NodeContainer nodes;
     nodes.Create(3);  // Node A, Router B, Node C
@@ -76,15 +79,19 @@ void RunSimulation(double load) {
                          InetSocketAddress(interfaces2.GetAddress(1), port));
     ApplicationContainer sinkApp = sink.Install(nodes.Get(2));  // Node C
     sinkApp.Start(Seconds(0.0));
-    sinkApp.Stop(Seconds(30.0));
+    sinkApp.Stop(Seconds(SIM_END));
 
     // Configure TCP sender
-    BulkSendHelper source("ns3::TcpSocketFactory",
+    OnOffHelper source("ns3::TcpSocketFactory",
                          InetSocketAddress(interfaces2.GetAddress(1), port));
-    source.SetAttribute("MaxBytes", UintegerValue(load * 1000000));  // Convert to bytes
+    // source.SetAttribute("MaxBytes", UintegerValue(load * 1000000));  // Convert to bytes
+    source.SetAttribute("DataRate", DataRateValue(DataRate(std::to_string(load) + "Mbps"))); // Set exact load
+    source.SetAttribute("PacketSize", UintegerValue(1024)); // Packet size in bytes
+    source.SetAttribute("StartTime", TimeValue(Seconds(0.0)));
+    source.SetAttribute("StopTime", TimeValue(Seconds(SIM_END)));
     ApplicationContainer sourceApp = source.Install(nodes.Get(0));  // Node A
     sourceApp.Start(Seconds(0.0));
-    sourceApp.Stop(Seconds(30.0));
+    sourceApp.Stop(Seconds(SIM_END));
 
     // Add tracing
     Config::ConnectWithoutContext(
@@ -93,25 +100,56 @@ void RunSimulation(double load) {
 
     // Enable PCAP tracing
     p2p.EnablePcapAll("part_a");
+    
+    FlowMonitorHelper flowmonitor;
+    Ptr<FlowMonitor> flowmon = flowmonitor.InstallAll();
 
     // Run simulation
-    Simulator::Stop(Seconds(30.0));
+    Simulator::Stop(Seconds(SIM_END));
     Simulator::Run();
-    Simulator::Destroy();
 
+
+    flowmon->CheckForLostPackets();
+    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmonitor.GetClassifier());
+    FlowMonitor::FlowStatsContainer stats = flowmon->GetFlowStats();
+
+    // for (auto iter = stats.begin(); iter != stats.end(); ++iter) {
+    auto iter = stats.begin(); // only pkts from 1.1 to 2.2
+        Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow(iter->first);
+
+        double simulationTime = (iter->second.timeLastRxPacket.GetSeconds() - iter->second.timeFirstTxPacket.GetSeconds());
+        // double load = ((iter->second.txBytes * 8.0) / simulationTime) / 0.000001; // Load in Mbps
+        double throughput = ((iter->second.rxBytes * 8.0) / simulationTime) / 0.000001; // Throughput in Mbps
+        double delay = (iter->second.delaySum.GetSeconds() / iter->second.rxPackets); // Average delay in seconds
+
+        std::cout << "Flow " << iter->first << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
+        std::cout << "  Tx Bytes: " << iter->second.txBytes << "\n";
+        std::cout << "  Rx Bytes: " << iter->second.rxBytes << "\n";
+        std::cout << "  Load: " << load << " Mbps\n";
+        std::cout << "  Throughput: " << throughput << " Mbps\n";
+        std::cout << "  Average Delay: " << delay << " s\n";
+        outFile << iter->first << "," << load << "," << throughput << "," << delay << "\n";
+    // }
+
+    Simulator::Destroy();
     // Calculate and print statistics
-    CalculateStats();
+    // CalculateStats();
 }
 
 int main(int argc, char *argv[]) {
     CommandLine cmd;
     cmd.Parse(argc, argv);
 
+    std::ofstream outFile("flow_metrics.csv");
+    outFile << "Flow,Load (Mbps),Throughput (Mbps),Delay (s)\n";
+
     std::cout << "Running Part A simulations..." << std::endl;
-    for (double load = 1.0; load <= 10.0; load += 1.0) { // Adjusted to simulate up to 10 Mbps
+    for (int load = 1; load <= 10; load += 1) { // Adjusted to simulate up to 10 Mbps
         std::cout << "\nLoad: " << load << " Mbps" << std::endl;
-        RunSimulation(load);
+        RunSimulation(load, outFile);
     }
+
+    outFile.close();
 
     return 0;
 }
