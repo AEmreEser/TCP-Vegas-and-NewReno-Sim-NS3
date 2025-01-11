@@ -70,7 +70,7 @@ class NetworkAnalyzer:
         self._plot_part_b_graphs(output_dir)
 
         # Comparison Graphs
-        self._plot_comparison_graphs(output_dir)
+        # self._plot_comparison_graphs(output_dir)
 
     def _plot_part_a_graphs(self, output_dir):
         """Generate graphs for Part A"""
@@ -87,8 +87,8 @@ class NetworkAnalyzer:
         for metric, (ylabel, title) in metrics.items():
             plt.figure(figsize=(10, 6))
             values = [
-                np.mean(self.part_a_results[load][metric]) 
-                if self.part_a_results[load][metric] 
+                np.mean(self.part_a_results[load][metric])
+                if self.part_a_results[load][metric]
                 else None
                 for load in loads
             ]
