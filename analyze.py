@@ -1,193 +1,126 @@
 #!/usr/bin/python3
-
-import sys
-import os
-import numpy as np
+import argparse
+import csv
 import matplotlib.pyplot as plt
-import re
-from collections import defaultdict
 
-class NetworkAnalyzer:
-    def __init__(self):
-        self.part_a_results = defaultdict(lambda: {'throughput': [], 'delay': [], 'bytes': []})
-        self.part_b_results = defaultdict(lambda: defaultdict(lambda: {'throughput': [], 'delay': [], 'bytes': []}))
+# Set up the command-line argument parser
+parser = argparse.ArgumentParser(description="Plot throughput, delay, and packet loss from CSV files.")
+parser.add_argument("--afile", "-a", help="The CSV file containing the flow statistics for A (e.g., a_metrics.csv)", default="a_metrics.csv")
+parser.add_argument("--bfile", "-b", help="The CSV file containing the flow statistics for B (e.g., b_metrics.csv)", default="b_metrics.csv")
+parser.add_argument("--option", "-o", choices=['a', 'b', 'ab'], help="Option to process data for 'a' or 'b'", default='ab', required=True)
 
-    def parse_part_a(self, filename):
-        """Parse Part A simulation results"""
-        current_load = None
+# Parse command-line arguments
+args = parser.parse_args()
+filename_a = args.afile
+filename_b = args.bfile
+option = args.option
 
-        with open(filename, 'r') as f:
-            lines = f.readlines()
+# Lists to store data for plotting
+loads = []
+throughputs = []
+delays = []
+packet_loss_list = []
 
-        for line in lines:
-            if "Load:" in line:
-                match = re.search(r"Load: (\d+\.?\d*)", line)
-                if match:
-                    current_load = float(match.group(1))
-            elif "Throughput:" in line:
-                throughput = float(re.search(r"Throughput: (\d+\.?\d*)", line).group(1))
-                self.part_a_results[current_load]['throughput'].append(throughput)
-            elif "Average Delay:" in line:
-                delay = float(re.search(r"Average Delay: (\d+\.?\d*)", line).group(1))
-                self.part_a_results[current_load]['delay'].append(delay)
-            elif "Total Bytes Received:" in line:
-                bytes_received = int(re.search(r"Total Bytes Received: (\d+)", line).group(1))
-                self.part_a_results[current_load]['bytes'].append(bytes_received)
+# Read data from 'a_metrics.csv'
+if option in ['a', 'ab']:
+    with open(filename_a, mode='r') as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)
+        for row in csv_reader:
+            load = float(row[1])
+            throughput = float(row[2])
+            delay = float(row[3])
 
-    def parse_part_b(self, filename):
-        """Parse Part B simulation results"""
-        current_load = None
-        current_variant = None
+            loads.append(load)
+            throughputs.append(throughput)
+            delays.append(delay)
 
-        with open(filename, 'r') as f:
-            lines = f.readlines()
+# Plot Throughput vs Load and Delay vs Load if option 'a' or 'both' is chosen
+if option in ['a', 'ab']:
+    plt.figure(figsize=(10, 6))
 
-        for line in lines:
-            if "TCP Variant:" in line:
-                current_variant = re.search(r"TCP Variant: (\w+)", line).group(1)
-            elif "Load:" in line:
-                match = re.search(r"Load: (\d+\.?\d*)", line)
-                if match:
-                    current_load = float(match.group(1))
-            elif "Throughput:" in line:
-                throughput = float(re.search(r"Throughput: (\d+\.?\d*)", line).group(1))
-                self.part_b_results[current_variant][current_load]['throughput'].append(throughput)
-            elif "Average Delay:" in line:
-                delay = float(re.search(r"Average Delay: (\d+\.?\d*)", line).group(1))
-                self.part_b_results[current_variant][current_load]['delay'].append(delay)
-            elif "Total Bytes Received:" in line:
-                bytes_received = int(re.search(r"Total Bytes Received: (\d+)", line).group(1))
-                self.part_b_results[current_variant][current_load]['bytes'].append(bytes_received)
+    # Plot throughput (no connecting line)
+    plt.subplot(211)
+    plt.plot(loads, throughputs, 'bo-', label='Throughput')  # 'bo' means blue color with circle markers
+    plt.xlabel('Load (Mbps)')
+    plt.ylabel('Throughput (Mbps)')
+    plt.title('Throughput vs Load')
+    plt.grid(True)
 
-    def generate_graphs(self, output_dir):
-        """Generate all required graphs"""
-        os.makedirs(output_dir, exist_ok=True)
+    # Plot delay (no connecting line)
+    plt.subplot(212)
+    plt.plot(loads, delays, 'ro-', label='Delay')  # 'rx' means red color with x markers
+    plt.xlabel('Load (Mbps)')
+    plt.ylabel('Delay (s)')
+    plt.title('Delay vs Load')
+    plt.grid(True)
 
-        # Part A Graphs
-        self._plot_part_a_graphs(output_dir)
+    plt.tight_layout()
+    plt.savefig('part_a_graph.png')
+    plt.show()
 
-        # Part B Graphs
-        self._plot_part_b_graphs(output_dir)
 
-        # Comparison Graphs
-        # self._plot_comparison_graphs(output_dir)
+# Read data from 'b_metrics.csv'
+if option in ['b', 'ab']:
+    loads.clear()
+    throughputs.clear()
+    delays.clear()
+    with open(filename_b, mode='r') as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)
+        # Extract packet loss values for 'b' data
+        for row in csv_reader:
+            load = float(row[1])
+            throughput = float(row[2])
+            delay = float(row[3])
 
-    def _plot_part_a_graphs(self, output_dir):
-        """Generate graphs for Part A"""
-        loads = sorted(self.part_a_results.keys())
-        if not loads:
-            print("No data available for Part A graphs.")
-            return
+            loads.append(load)
+            throughputs.append(throughput)
+            delays.append(delay)
+            packet_loss = float(row[4])  # Extracting the packet loss percentage
+            packet_loss_list.append(packet_loss)
 
-        metrics = {
-            'throughput': ('Throughput (Mbps)', 'Load vs Throughput'),
-            'delay': ('Delay (ms)', 'Load vs Delay')
-        }
+# Plot Packet Loss if option 'b' or 'both' is chosen
+if option in ['b', 'ab']:
+    # Print packet loss values
+    # print("Packet Loss Values from CSV (B):")
+    # for packet_loss in packet_loss_list:
+        # print(f"{packet_loss:.2f}%")
 
-        for metric, (ylabel, title) in metrics.items():
-            plt.figure(figsize=(10, 6))
-            values = [
-                np.mean(self.part_a_results[load][metric])
-                if self.part_a_results[load][metric]
-                else None
-                for load in loads
-            ]
+    # first half: new reno, 2nd hafl: vegas
+    mid_point = len(packet_loss_list) // 2
+    plt.figure(figsize=(11, 6))
 
-            # Filter out None values
-            valid_data = [(load, value) for load, value in zip(loads, values) if value is not None]
-            if not valid_data:
-                print(f"No valid data for Part A: {metric}.")
-                continue
+    # Plot packet loss with labeled segments for newReno and TCP Vegas
+    plt.subplot(311)
+    plt.plot(loads[:mid_point], packet_loss_list[:mid_point], 'ro-', label='newReno')  # First half: newReno
+    plt.plot(loads[mid_point:], packet_loss_list[mid_point:], 'bo-', label='TCP Vegas')  # Second half: TCP Vegas
+    plt.title("Packet Loss vs Load")
+    plt.xlabel("Load (Mbps)")
+    plt.ylabel("Packet Loss (%)")
+    plt.legend()
+    plt.grid(True)
 
-            valid_loads, valid_values = zip(*valid_data)
-            plt.plot(valid_loads, valid_values, 'bo-', label='Part A')
-            plt.xlabel('Load (Mbps)')
-            plt.ylabel(ylabel)
-            plt.title(f'Part A: {title}')
-            plt.grid(True)
-            plt.savefig(os.path.join(output_dir, f'part_a_{metric}.png'))
-            plt.close()
+    # Plot throughput (no connecting line)
+    plt.subplot(312)
+    plt.plot(loads[:mid_point], throughputs[:mid_point], 'ro-', label='newReno')  # First half: newReno
+    plt.plot(loads[mid_point:], throughputs[mid_point:], 'bo-', label='TCP Vegas')  # Second half: TCP Vegas
+    plt.xlabel('Load (Mbps)')
+    plt.ylabel('Throughput (Mbps)')
+    plt.title('Throughput vs Load')
+    plt.legend()
+    plt.grid(True)
 
-    def _plot_part_b_graphs(self, output_dir):
-        """Generate graphs for Part B"""
-        variants = list(self.part_b_results.keys())
-        if not variants:
-            return
+    # Plot delay (no connecting line)
+    plt.subplot(313)
+    plt.plot(loads[:mid_point], delays[:mid_point], 'ro-', label='newReno')  # First half: newReno
+    plt.plot(loads[mid_point:], delays[mid_point:], 'bo-', label='TCP Vegas')  # Second half: TCP Vegas
+    plt.xlabel('Load (Mbps)')
+    plt.ylabel('Delay (s)')
+    plt.title('Delay vs Load')
+    plt.legend()
+    plt.grid(True)
 
-        loads = sorted(self.part_b_results[variants[0]].keys())
-        metrics = {
-            'throughput': ('Throughput (Mbps)', 'Load vs Throughput'),
-            'delay': ('Delay (ms)', 'Load vs Delay')
-        }
-
-        for metric, (ylabel, title) in metrics.items():
-            plt.figure(figsize=(10, 6))
-            for variant in variants:
-                values = [np.mean(self.part_b_results[variant][load][metric]) for load in loads]
-                plt.plot(loads, values, 'o-', label=variant)
-            plt.xlabel('Load (Mbps)')
-            plt.ylabel(ylabel)
-            plt.title(f'Part B: {title}')
-            plt.legend()
-            plt.grid(True)
-            plt.savefig(os.path.join(output_dir, f'part_b_{metric}.png'))
-            plt.close()
-
-    def _plot_comparison_graphs(self, output_dir):
-        """Generate comparison graphs between parts"""
-        metrics = {
-            'throughput': ('Throughput (Mbps)', 'Load vs Throughput'),
-            'delay': ('Delay (ms)', 'Load vs Delay')
-        }
-
-        for metric, (ylabel, title) in metrics.items():
-            plt.figure(figsize=(12, 6))
-
-            # Plot Part A
-            loads_a = sorted(self.part_a_results.keys())
-            values_a = [np.mean(self.part_a_results[load][metric]) for load in loads_a]
-            plt.plot(loads_a, values_a, 'bo-', label='Part A')
-
-            # Plot Part B (both variants)
-            for variant in self.part_b_results.keys():
-                loads_b = sorted(self.part_b_results[variant].keys())
-                values_b = [np.mean(self.part_b_results[variant][load][metric])
-                           for load in loads_b]
-                plt.plot(loads_b, values_b, 'o-', label=f'Part B ({variant})')
-
-            plt.xlabel('Load (Mbps)')
-            plt.ylabel(ylabel)
-            plt.title(f'Comparison: {title}')
-            plt.legend()
-            plt.grid(True)
-            plt.savefig(os.path.join(output_dir, f'comparison_{metric}.png'))
-            plt.close()
-
-def main():
-    if len(sys.argv) != 4:
-        print("Usage: ./analyze_results.py <part_a_results.txt> <part_b_results.txt> <output_directory>")
-        sys.exit(1)
-
-    part_a_file = sys.argv[1]
-    part_b_file = sys.argv[2]
-    output_directory = sys.argv[3]
-
-    analyzer = NetworkAnalyzer()
-
-    # Parse both result files
-    if os.path.exists(part_a_file):
-        analyzer.parse_part_a(part_a_file)
-    else:
-        print(f"Warning: Part A results file {part_a_file} not found")
-
-    if os.path.exists(part_b_file):
-        analyzer.parse_part_b(part_b_file)
-    else:
-        print(f"Warning: Part B results file {part_b_file} not found")
-
-    # Generate graphs
-    analyzer.generate_graphs(output_directory)
-    print(f"Graphs have been generated in {output_directory}")
-
-if __name__ == "__main__":
-    main()
+    plt.tight_layout(pad=2.0)
+    plt.savefig('part_b_graph.png')
+    plt.show()
