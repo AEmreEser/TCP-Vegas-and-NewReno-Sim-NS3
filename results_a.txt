@@ -1,0 +1,172 @@
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- Using default output directory /home/emre/ns3/ns-3.43/build
+-- CCache is enabled.
+-- [33mProceeding without cmake-format[0m
+-- Could NOT find Boost (missing: Boost_INCLUDE_DIR) 
+-- [33mdocs: doxygen documentation not enabled due to missing dependencies: doxygen dot dia[0m
+-- Failed to locate sphinx-build executable (missing: SPHINX_EXECUTABLE) 
+-- [33mdocs: sphinx documentation not enabled due to missing dependencies: Sphinx epstopdf pdflatex latexmk dvipng dia[0m
+-- Processing src/antenna
+-- Standard library Bessel function has been found
+-- Processing src/aodv
+-- Processing src/applications
+-- Processing src/bridge
+-- Processing src/brite
+-- [33mSkipping src/brite[0m
+-- Processing src/buildings
+-- Processing src/click
+-- [33mSkipping src/click[0m
+-- Processing src/config-store
+-- Processing src/core
+-- Boost Units are an optional feature of length.cc.  Ubuntu ships it within the libboost-dev package.  You may need to clean up the CMake cache after installing it to pass this check.
+-- Processing src/csma
+-- Processing src/csma-layout
+-- Processing src/dsdv
+-- Processing src/dsr
+-- Processing src/energy
+-- Processing src/fd-net-device
+-- Checking for module 'libdpdk'
+--   Package 'libdpdk', required by 'virtual:world', not found
+-- Processing src/flow-monitor
+-- Processing src/internet
+-- Processing src/internet-apps
+-- Processing src/lr-wpan
+-- Processing src/lte
+-- Processing src/mesh
+-- Processing src/mobility
+-- Processing src/netanim
+-- Processing src/network
+-- Processing src/nix-vector-routing
+-- Processing src/olsr
+-- Processing src/openflow
+-- [33mSkipping src/openflow[0m
+-- Processing src/point-to-point
+-- Processing src/point-to-point-layout
+-- Processing src/propagation
+-- Processing src/sixlowpan
+-- Processing src/spectrum
+-- Processing src/stats
+-- Processing src/tap-bridge
+-- Processing src/test
+-- Processing src/topology-read
+-- Processing src/traffic-control
+-- Processing src/uan
+-- Processing src/virtual-net-device
+-- Processing src/wifi
+-- Processing src/wimax
+-- ---- Summary of ns-3 settings:
+Build profile                 : default
+Build directory               : /home/emre/ns3/ns-3.43/build
+Build with runtime asserts    : [32mON[0m
+Build with runtime logging    : [32mON[0m
+Build version embedding       : OFF (not requested)
+BRITE Integration             : [31mOFF (Missing headers: "Brite.h" and missing libraries: "brite")[0m
+DES Metrics event collection  : OFF (not requested)
+DPDK NetDevice                : OFF (not requested)
+Emulation FdNetDevice         : [32mON[0m
+Examples                      : [32mON[0m
+File descriptor NetDevice     : [32mON[0m
+GNU Scientific Library (GSL)  : [31mOFF (GSL was not found)[0m
+GtkConfigStore                : [31mOFF (Harfbuzz is required by GTK3 and was not found)[0m
+LibXml2 support               : [31mOFF (LibXML2 was not found)[0m
+MPI Support                   : OFF (not requested)
+ns-3 Click Integration        : [31mOFF (Missing headers: "simclick.h" and missing libraries: "nsclick click")[0m
+ns-3 OpenFlow Integration     : [31mOFF (Missing headers: "openflow.h" and missing libraries: "openflow")[0m
+Netmap emulation FdNetDevice  : [31mOFF (missing dependency)[0m
+PyViz visualizer              : [31mOFF (Python Bindings are disabled)[0m
+Python Bindings               : OFF (not requested)
+SQLite support                : [31mOFF (Missing headers: "sqlite3.h" and missing libraries: "sqlite3")[0m
+Eigen3 support                : [31mOFF (Eigen was not found)[0m
+Tap Bridge                    : [32mON[0m
+Tap FdNetDevice               : [32mON[0m
+Tests                         : [32mON[0m
+
+
+Modules configured to be built:
+antenna                   aodv                      applications              
+bridge                    buildings                 config-store              
+core                      csma                      csma-layout               
+dsdv                      dsr                       energy                    
+fd-net-device             flow-monitor              internet                  
+internet-apps             lr-wpan                   lte                       
+mesh                      mobility                  netanim                   
+network                   nix-vector-routing        olsr                      
+point-to-point            point-to-point-layout     propagation               
+sixlowpan                 spectrum                  stats                     
+tap-bridge                test                      topology-read             
+traffic-control           uan                       virtual-net-device        
+wifi                      wimax                     
+
+Modules that cannot be built:
+brite                     click                     mpi                       
+openflow                  visualizer                
+
+
+-- Configuring done (1.1s)
+-- Generating done (0.5s)
+-- Build files have been written to: /home/emre/ns3/ns-3.43/cmake-cache
+[0/2] Re-checking globbed directories...
+[1/2] Building CXX object scratch/CMakeFiles/scratch_partA.dir/partA.cc.o
+[2/2] Linking CXX executable /home/emre/ns3/ns-3.43/build/scratch/ns3.43-partA-default
+Running Part A simulations...
+
+Load: 1 Mbps
+Results:
+Throughput: 77.2469 Mbps
+Average Delay: 71.4027 ms
+Total Bytes Received: 1000000
+
+Load: 11 Mbps
+Results:
+Throughput: 122.421 Mbps
+Average Delay: 380.474 ms
+Total Bytes Received: 11000000
+
+Load: 21 Mbps
+Results:
+Throughput: 125.713 Mbps
+Average Delay: 688.49 ms
+Total Bytes Received: 21000000
+
+Load: 31 Mbps
+Results:
+Throughput: 127.073 Mbps
+Average Delay: 996.474 ms
+Total Bytes Received: 31000000
+
+Load: 41 Mbps
+Results:
+Throughput: 127.78 Mbps
+Average Delay: 1304.46 ms
+Total Bytes Received: 41000000
+
+Load: 51 Mbps
+Results:
+Throughput: 128.214 Mbps
+Average Delay: 1612.43 ms
+Total Bytes Received: 51000000
+
+Load: 61 Mbps
+Results:
+Throughput: 128.431 Mbps
+Average Delay: 1920.4 ms
+Total Bytes Received: 61000000
+
+Load: 71 Mbps
+Results:
+Throughput: 128.653 Mbps
+Average Delay: 2228.37 ms
+Total Bytes Received: 71000000
+
+Load: 81 Mbps
+Results:
+Throughput: 128.821 Mbps
+Average Delay: 2536.35 ms
+Total Bytes Received: 81000000
+
+Load: 91 Mbps
+Results:
+Throughput: 128.9 Mbps
+Average Delay: 2844.32 ms
+Total Bytes Received: 91000000
