@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
 
     for (const auto& variant : tcpVariants) {
         std::cout << "\nTCP Variant: " << variant << std::endl;
-        for (double load = 10.0; load <= 100.0; load += 10.0) {
+        for (double load = 10.0; load <= 110.0; load += 10.0) {
             std::cout << "\nLoad: " << load << " Mbps" << std::endl;
             RunSimulation(load, variant);
         }

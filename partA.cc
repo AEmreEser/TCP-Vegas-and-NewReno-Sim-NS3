@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
     cmd.Parse(argc, argv);
 
     std::cout << "Running Part A simulations..." << std::endl;
-    for (double load = 1.0; load <= 100.0; load += 10.0) { // Adjusted to simulate up to 100 Mbps
+    for (double load = 1.0; load <= 110.0; load += 10.0) { // Adjusted to simulate up to 100 Mbps
         std::cout << "\nLoad: " << load << " Mbps" << std::endl;
         RunSimulation(load);
     }
