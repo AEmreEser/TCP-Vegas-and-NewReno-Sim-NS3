@@ -10,7 +10,7 @@
 using namespace ns3;
 
 #ifndef SIM_END
-#define SIM_END 10.0
+#define SIM_END 5.0
 #endif
 
 NS_LOG_COMPONENT_DEFINE("PartA");
@@ -27,15 +27,15 @@ void RxTrace(Ptr<const Packet> packet, const Address& address) {
     g_delays.push_back(Simulator::Now().GetMilliSeconds());
 }
 
-void CalculateStats() {
-    double throughput = (g_totalBytesReceived * 8.0) / (g_lastRxTime.GetSeconds() * 1000000.0);
+void CalculateDelay() {
+    // double throughput = (g_totalBytesReceived * 8.0) / (g_lastRxTime.GetSeconds() * 1000000.0);
     double avgDelay = 0;
     if (!g_delays.empty()) {
         avgDelay = std::accumulate(g_delays.begin(), g_delays.end(), 0.0) / g_delays.size();
     }
 
-    std::cout << "Results:" << std::endl;
-    std::cout << "Throughput: " << throughput << " Mbps" << std::endl;
+    // std::cout << "Results:" << std::endl;
+    // std::cout << "Throughput: " << throughput << " Mbps" << std::endl;
     std::cout << "Average Delay: " << avgDelay << " ms" << std::endl;
     std::cout << "Total Bytes Received: " << g_totalBytesReceived << std::endl;
 
@@ -53,6 +53,7 @@ void RunSimulation(int load, std::ofstream & outFile) {
     PointToPointHelper p2p;
     p2p.SetDeviceAttribute("DataRate", StringValue("5Mbps")); // Set high enough to handle 10 Mbps load
     p2p.SetChannelAttribute("Delay", StringValue("2ms"));
+    p2p.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue("10p")); // fifo queue in every connection
 
     // Install devices
     NetDeviceContainer devices1 = p2p.Install(nodes.Get(0), nodes.Get(1));  // A to B
@@ -73,16 +74,16 @@ void RunSimulation(int load, std::ofstream & outFile) {
     // Enable routing
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    // Create TCP application
+    // Create UDP application
     uint16_t port = 8080;
-    PacketSinkHelper sink("ns3::TcpSocketFactory",
+    PacketSinkHelper sink("ns3::UdpSocketFactory",
                          InetSocketAddress(interfaces2.GetAddress(1), port));
     ApplicationContainer sinkApp = sink.Install(nodes.Get(2));  // Node C
     sinkApp.Start(Seconds(0.0));
     sinkApp.Stop(Seconds(SIM_END));
 
-    // Configure TCP sender
-    OnOffHelper source("ns3::TcpSocketFactory",
+    // Configure UDP sender
+    OnOffHelper source("ns3::UdpSocketFactory",
                          InetSocketAddress(interfaces2.GetAddress(1), port));
     // source.SetAttribute("MaxBytes", UintegerValue(load * 1000000));  // Convert to bytes
     source.SetAttribute("DataRate", DataRateValue(DataRate(std::to_string(load) + "Mbps"))); // Set exact load
@@ -129,6 +130,8 @@ void RunSimulation(int load, std::ofstream & outFile) {
         std::cout << "  Load: " << load << " Mbps\n";
         std::cout << "  Throughput: " << throughput << " Mbps\n";
         std::cout << "  Average Delay: " << delay << " s\n";
+        // std::cout << "Calculate Delay Res: " << "\n";
+        // CalculateDelay();
         outFile << iter->first << "," << load << "," << throughput << "," << delay << "\n";
     // }
 
