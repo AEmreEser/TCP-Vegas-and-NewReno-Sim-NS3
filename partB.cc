@@ -51,7 +51,7 @@ void RunSimulation(double load, std::string tcpVariant, std::ofstream & outFile)
     PointToPointHelper p2p;
     p2p.SetDeviceAttribute("DataRate", StringValue("100Mbps")); // router & dest conn. rate: 100Mbps
     p2p.SetChannelAttribute("Delay", StringValue("1ms"));
-    p2p.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue("1p")); // fifo queue in every connection
+    p2p.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue("10p")); // fifo queue in every connection
 
     // A3 - Router Connection
     NetDeviceContainer routerDevices = p2p.Install(lanNodes.Get(2), routerNode.Get(0));
@@ -92,9 +92,12 @@ void RunSimulation(double load, std::string tcpVariant, std::ofstream & outFile)
     sinkApp.Stop(Seconds(SIM_END));
 
     // Configure TCP sender
-    BulkSendHelper source("ns3::TcpSocketFactory", InetSocketAddress(destInterfaces.GetAddress(1), port));
-    source.SetAttribute("MaxBytes", UintegerValue(load * (1000000/8.0f))); // sends a total of <Load> Mbytes
-    source.SetAttribute("SendSize", UintegerValue(512)); // packet size
+    // cannot use bulk send application since we cannot control its sending rate 
+    OnOffHelper source("ns3::TcpSocketFactory", InetSocketAddress(destInterfaces.GetAddress(1), port));
+    source.SetAttribute("DataRate", DataRateValue(DataRate(std::to_string(load) + "Mbps")));
+    source.SetAttribute("PacketSize", UintegerValue(512));
+    source.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]")); // always working
+    source.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
     ApplicationContainer sourceApp = source.Install(lanNodes.Get(0));  // installed on A1
     sourceApp.Start(Seconds(0.0));
     sourceApp.Stop(Seconds(SIM_END));
