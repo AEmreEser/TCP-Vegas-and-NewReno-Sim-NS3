@@ -87,6 +87,8 @@ void RunSimulation(int load, std::ofstream & outFile) {
     // source.SetAttribute("MaxBytes", UintegerValue(load * 1000000));  // Convert to bytes
     source.SetAttribute("DataRate", DataRateValue(DataRate(std::to_string(load) + "Mbps"))); // Set exact load
     source.SetAttribute("PacketSize", UintegerValue(1024)); // Packet size in bytes
+    source.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]")); // always working
+    source.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
     source.SetAttribute("StartTime", TimeValue(Seconds(0.0)));
     source.SetAttribute("StopTime", TimeValue(Seconds(SIM_END)));
     ApplicationContainer sourceApp = source.Install(nodes.Get(0));  // Node A
