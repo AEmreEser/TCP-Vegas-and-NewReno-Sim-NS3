@@ -28,7 +28,6 @@ analysis: $(GRAPHS_DIR)
 # Clean generated files
 clean:
 	@- rm *.pcap
-	@- rm -f $(PARTA_BIN) $(PARTB_BIN)
 	@- rm -rf $(RESULTS_DIR)
 	@- rm -rf $(GRAPHS_DIR)
 	@- rm *.png
