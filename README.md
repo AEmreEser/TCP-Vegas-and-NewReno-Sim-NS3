@@ -33,10 +33,13 @@ To build and run simulations for `PartA` and `PartB`, and to perform analysis, u
    make all
 ## Results
 
-![Part A Graph](graphs/part_a_graph.png)
 
 Part A network metrics against an increasing load
 
-![Part B Graph](graphs/part_b_graph.png)
+![Part A Graph](graphs/part_a_graph.png)
+
 
 Part B network metrics against an increasing load
+
+![Part B Graph](graphs/part_b_graph.png)
+
