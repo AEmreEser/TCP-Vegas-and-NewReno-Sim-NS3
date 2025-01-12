@@ -51,7 +51,7 @@ void RunSimulation(double load, std::string tcpVariant, std::ofstream & outFile)
     PointToPointHelper p2p;
     p2p.SetDeviceAttribute("DataRate", StringValue("100Mbps")); // router & dest conn. rate: 100Mbps
     p2p.SetChannelAttribute("Delay", StringValue("1ms"));
-    p2p.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue("10p")); // fifo queue in every connection
+    // p2p.SetQueue("ns3::DropTailQueue", "MaxSize", StringValue("10p")); // fifo queue in every connection // makes almost no difference
 
     // A3 - Router Connection
     NetDeviceContainer routerDevices = p2p.Install(lanNodes.Get(2), routerNode.Get(0));
@@ -112,37 +112,37 @@ void RunSimulation(double load, std::string tcpVariant, std::ofstream & outFile)
     csma.EnablePcapAll("part_b_lan");
     p2p.EnablePcapAll("part_b_p2p");
 
+    // this helps us obtain statistics
     FlowMonitorHelper flowmonitor;
     Ptr<FlowMonitor> flowmon = flowmonitor.InstallAll();
 
     // Run simulation
     Simulator::Stop(Seconds(SIM_END));
     Simulator::Run();
-    Simulator::Destroy();
 
     flowmon->CheckForLostPackets();
     Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmonitor.GetClassifier());
     FlowMonitor::FlowStatsContainer stats = flowmon->GetFlowStats();
 
-    // for (auto iter = stats.begin(); iter != stats.end(); ++iter) {
     auto iter = stats.begin(); // only pkts from A1 to C
-        Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow(iter->first);
+    Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow(iter->first);
 
-        double simulationTime = (iter->second.timeLastRxPacket.GetSeconds() - iter->second.timeFirstTxPacket.GetSeconds());
-        double throughput = ((iter->second.rxBytes * 8.0) / simulationTime) * 0.000001f; // Throughput in Mbps
-        double delay = (iter->second.delaySum.GetSeconds() / iter->second.rxPackets); // Average delay in seconds
-        double packetLoss = ((double)(iter->second.txPackets - iter->second.rxPackets) / iter->second.txPackets) * 100.0f; // Packet loss in Mbps
+    double simulationTime = (iter->second.timeLastRxPacket.GetSeconds() - iter->second.timeFirstTxPacket.GetSeconds());
+    double throughput = ((iter->second.rxBytes * 8.0) / simulationTime) * 0.000001f; // Throughput in Mbps
+    double delay = (iter->second.delaySum.GetSeconds() / iter->second.rxPackets); // Average delay in seconds
+    double packetLoss = ((double)(iter->second.txPackets - iter->second.rxPackets) / iter->second.txPackets) * 100.0f; // Packet loss in Mbps
 
 
-        std::cout << "Flow " << iter->first << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
-        std::cout << "  Tx Bytes: " << iter->second.txBytes << "\n";
-        std::cout << "  Rx Bytes: " << iter->second.rxBytes << "\n";
-        std::cout << "  Load: " << load << " Mbps\n";
-        std::cout << "  Throughput: " << throughput << " Mbps\n";
-        std::cout << "  Average Delay: " << delay << " s\n";
-        std::cout << "  Packet Loss: " << std::setprecision(9) << packetLoss << "%\n";
-        outFile << iter->first << "," << load << "," << throughput << "," << delay << "," << packetLoss << "\n";
-    // }
+    std::cout << "Flow " << iter->first << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
+    std::cout << "  Tx Bytes: " << iter->second.txBytes << "\n";
+    std::cout << "  Rx Bytes: " << iter->second.rxBytes << "\n";
+    std::cout << "  Load: " << load << " Mbps\n";
+    std::cout << "  Throughput: " << throughput << " Mbps\n";
+    std::cout << "  Average Delay: " << delay << " s\n";
+    std::cout << "  Packet Loss: " << std::setprecision(9) << packetLoss << "%\n";
+    outFile << iter->first << "," << load << "," << throughput << "," << delay << "," << packetLoss << "\n";
+
+    Simulator::Destroy();
 }
 
 int main(int argc, char *argv[]) {
